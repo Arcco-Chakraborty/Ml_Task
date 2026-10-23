@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}Feedback · Cirrus Weather{% endblock %}
+
+{% block content %}
+<main class="feedback-wrap">
+  <h1>Talk to us</h1>
+  <p class="lead">Ask a question, suggest an idea, or tell us what's broken. Just type; we'll sort it out.</p>
+
+  <form id="feedback-form" class="feedback-form">
+    <textarea id="feedback-text" maxlength="2000" placeholder="e.g. The radar map is blank on my phone…" required></textarea>
+    <div class="form-row">
+      <span class="counter" id="counter">0 / 2000</span>
+      <button type="submit" class="primary" id="send">Send</button>
+    </div>
+    <div class="form-error" id="form-error" role="alert"></div>
+  </form>
+
+  <ul class="thread" id="thread" aria-live="polite"></ul>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/feedback.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Cirrus Weather{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/app.css') }}">
+  {% block head %}{% endblock %}
+</head>
+<body class="{% block body_class %}{% endblock %}">
+  <header class="topbar">
+    <a class="brand" href="{{ url_for('index') }}">☁️ Cir<span>rus</span></a>
+    {% block topbar %}{% endblock %}
+    <nav class="topnav">
+      <a href="{{ url_for('index') }}" class="{{ 'active' if request.endpoint == 'index' }}">Weather</a>
+      <a href="{{ url_for('feedback.feedback_page') }}" class="{{ 'active' if request.endpoint == 'feedback.feedback_page' }}">Feedback</a>
+    </nav>
+  </header>
+  {% block content %}{% endblock %}
+  <footer>Cirrus Weather v{{ app_version }} · Data: Open-Meteo, RainViewer, © OpenStreetMap contributors ·
+    <a href="{{ url_for('feedback.feedback_page') }}">Send feedback</a></footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>

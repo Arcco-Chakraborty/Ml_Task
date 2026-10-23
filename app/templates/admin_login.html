@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Admin login · Cirrus Weather{% endblock %}
+
+{% block content %}
+<main class="feedback-wrap" style="max-width: 380px">
+  <h1>Admin</h1>
+  <p class="lead">Sign in to see feedback, suggestions and known issues.</p>
+  <form method="post" class="feedback-form">
+    <input type="password" name="password" placeholder="Password" autofocus required
+           style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:10px;font:inherit">
+    <div class="form-row"><span></span><button class="primary" type="submit">Sign in</button></div>
+    <div class="form-error">{{ error or "" }}</div>
+    {% if default_password %}
+    <p class="counter">Dev default password is <code>admin</code>. Set <code>ADMIN_PASSWORD</code> to change it.</p>
+    {% endif %}
+  </form>
+</main>
+{% endblock %}

@@ -1,0 +1,103 @@
+{% extends "base.html" %}
+{% block title %}Admin · Cirrus Weather{% endblock %}
+{% block head %}<link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">{% endblock %}
+{% block body_class %}admin{% endblock %}
+
+{% block topbar %}
+<span class="admin-pill">Admin</span>
+<form method="post" action="{{ url_for('feedback.admin_logout') }}" class="logout"><button class="icon-btn">Log out</button></form>
+{% endblock %}
+
+{% block content %}
+<main class="container admin-main">
+  <nav class="tabs" role="tablist">
+    <button data-tab="overview" class="on">Overview</button>
+    <button data-tab="inbox">Inbox</button>
+    <button data-tab="suggestions">Suggestions</button>
+    <button data-tab="issues">Known issues</button>
+    <button data-tab="model">Model</button>
+  </nav>
+
+  <div id="pipeline-banner" class="banner" hidden></div>
+
+  <!-- ============================== overview -->
+  <section data-panel="overview">
+    <div class="tiles" id="tiles"></div>
+    <div class="two-col">
+      <div class="card"><h2>Most requested</h2><ol class="rank" id="top-suggestions"></ol></div>
+      <div class="card"><h2>Most reported known issues</h2><ol class="rank" id="top-issues"></ol></div>
+    </div>
+  </section>
+
+  <!-- ============================== inbox -->
+  <section data-panel="inbox" hidden>
+    <div class="toolbar">
+      <select id="f-label">
+        <option value="">All labels</option>
+        <option value="query">Queries</option>
+        <option value="suggestion">Suggestions</option>
+        <option value="bug">Bugs</option>
+        <option value="junk">Junk</option>
+        <option value="unclassified">Unclassified</option>
+      </select>
+      <label><input type="checkbox" id="f-unmatched"> Unmatched only</label>
+      <input type="search" id="f-q" placeholder="Search messages…">
+      <a class="icon-btn" href="/api/admin/feedback.csv">Export CSV</a>
+    </div>
+    <div class="card table-card">
+      <table class="table">
+        <thead><tr><th>#</th><th>When</th><th>Message</th><th>Label</th><th>Matched</th><th>Reply sent</th></tr></thead>
+        <tbody id="inbox-body"></tbody>
+      </table>
+      <p class="empty" id="inbox-empty" hidden>No feedback yet. Try the <a href="/feedback">feedback page</a>.</p>
+    </div>
+  </section>
+
+  <!-- ============================== suggestions -->
+  <section data-panel="suggestions" hidden>
+    <div class="card table-card">
+      <table class="table">
+        <thead><tr><th>ID</th><th>Suggestion</th><th style="width:38%">Votes</th><th>Source</th></tr></thead>
+        <tbody id="sugg-body"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ============================== issues -->
+  <section data-panel="issues" hidden>
+    <div class="card table-card">
+      <table class="table">
+        <thead><tr><th>ID</th><th>Issue</th><th>Component</th><th>Reports</th><th>Status</th><th>Fixed in</th><th></th></tr></thead>
+        <tbody id="issues-body"></tbody>
+      </table>
+    </div>
+    <div class="card">
+      <h2>Bug reports that matched no known issue</h2>
+      <table class="table">
+        <thead><tr><th>#</th><th>When</th><th>Report</th><th></th></tr></thead>
+        <tbody id="unmatched-body"></tbody>
+      </table>
+      <p class="empty" id="unmatched-empty" hidden>Nothing here.</p>
+    </div>
+  </section>
+
+  <!-- ============================== model -->
+  <section data-panel="model" hidden>
+    <div class="card">
+      <div class="model-head">
+        <div>
+          <h2>Pipeline</h2>
+          <div id="model-status"></div>
+        </div>
+        <button class="icon-btn" id="reload-model">Reload model</button>
+      </div>
+      <pre class="detail-pre" id="model-detail"></pre>
+    </div>
+    <div id="metrics"></div>
+  </section>
+</main>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block head %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
+      integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+{% endblock %}
+
+{% block topbar %}
+<div class="search">
+  <input id="search" type="search" placeholder="Search for a city…" autocomplete="off" aria-label="Search for a city">
+  <ul id="search-results" class="search-results" role="listbox"></ul>
+</div>
+<button id="locate" class="icon-btn" title="Use my location" aria-label="Use my location">📍</button>
+<div class="unit-toggle" role="group" aria-label="Units">
+  <button data-units="metric">°C</button><button data-units="imperial">°F</button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="loading" class="spinner-overlay"><div class="spinner" aria-label="Loading"></div></div>
+<div id="toast" class="toast"></div>
+
+<main class="container">
+  <div id="saved" class="chips"></div>
+
+  <div class="grid">
+    <section id="today" class="card">
+      <div class="place">
+        <div>
+          <h1 id="place-name">…</h1>
+          <div class="sub" id="place-sub"></div>
+        </div>
+        <button id="save-place" class="star" title="Save location" aria-label="Save location">☆</button>
+      </div>
+      <div class="now">
+        <div class="icon" id="now-icon"></div>
+        <div>
+          <div class="temp" id="now-temp">--</div>
+        </div>
+        <div>
+          <div class="cond" id="now-cond"></div>
+          <div class="feels" id="now-feels"></div>
+          <div class="hilo" id="now-hilo"></div>
+        </div>
+      </div>
+      <div class="details">
+        <div class="detail"><div class="k">Chance of rain</div><div class="v" id="d-rain">--</div></div>
+        <div class="detail"><div class="k">Humidity</div><div class="v" id="d-humidity">--</div></div>
+        <div class="detail"><div class="k">Wind</div><div class="v" id="d-wind">--</div></div>
+        <div class="detail"><div class="k">Pressure</div><div class="v" id="d-pressure">--</div></div>
+        <div class="detail"><div class="k">UV index</div><div class="v" id="d-uv">--</div></div>
+        <div class="detail"><div class="k">Air quality</div><div class="v" id="d-aqi">--</div></div>
+      </div>
+      <div class="sun">
+        <div>🌅 Sunrise <b id="sunrise">--</b></div>
+        <div>🌇 Sunset <b id="sunset">--</b></div>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>7-day forecast</h2>
+      <ul class="daily" id="daily"></ul>
+    </section>
+
+    <section class="card span-2">
+      <h2>Next 24 hours</h2>
+      <div id="hourly-chart"></div>
+    </section>
+
+    <section id="radar" class="card span-2">
+      <h2>Rain radar</h2>
+      <div id="radar-map"></div>
+      <div class="radar-meta" id="radar-meta"></div>
+    </section>
+  </div>
+</main>
+
+<div class="promo-banner">
+  <span>✨ Cirrus Premium: no ads, 14-day forecasts and more.</span>
+  <button type="button">Upgrade</button>
+</div>
+
+<nav class="bottom-nav">
+  <a href="#today" class="active"><span>🌤️</span>Today</a>
+  <a href="#radar"><span>🛰️</span>Radar</a>
+  <a href="{{ url_for('feedback.feedback_page') }}"><span>💬</span>Feedback</a>
+</nav>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"
+        integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/hourly-chart.js') }}"></script>
+<script src="{{ url_for('static', filename='js/radar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/app.js') }}"></script>
+{% endblock %}
