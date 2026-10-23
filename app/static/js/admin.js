@@ -73,9 +73,22 @@
     const opts = LABELS.map((l) => `<option ${row.label === l ? "selected" : ""}>${l}</option>`).join("");
     const none = row.label ? "" : `<option selected disabled>unclassified</option>`;
     const src = row.label_source === "admin" ? ` <span class="badge admin">corrected</span>` : "";
-    const conf = row.confidence != null ? ` <span class="badge">${Math.round(row.confidence * 100)}%</span>` : "";
+    // the probability bar already shows the confidence; the badge is for a confidence without one
+    const conf = row.confidence != null && !row.probabilities
+      ? ` <span class="badge">${Math.round(row.confidence * 100)}%</span>` : "";
     const err = row.pipeline_error ? ` <span class="err-dot" title="${esc(row.pipeline_error)}">●</span>` : "";
-    return `<select data-relabel="${row.id}">${none}${opts}</select>${conf}${src}${err}`;
+    return `<select data-relabel="${row.id}">${none}${opts}</select>${conf}${src}${err}${probBar(row)}`;
+  }
+
+  // confidence for every label (from the pipeline's predict_proba), as one stacked bar
+  function probBar(row) {
+    if (!row.probabilities) return "";
+    const probs = JSON.parse(row.probabilities);
+    const pct = (l) => Math.round((probs[l] || 0) * 100);
+    const segs = LABELS.map((l) => `<span class="seg ${l}" style="width:${(probs[l] || 0) * 100}%"></span>`).join("");
+    const legend = LABELS.map((l) => `<span class="${l === row.label ? "pick" : ""}">${l[0]} ${pct(l)}</span>`).join(" · ");
+    const title = LABELS.map((l) => `${l} ${pct(l)}%`).join(", ");
+    return `<div class="probs" title="${title}"><div class="probbar">${segs}</div><div class="problegend">${legend}</div></div>`;
   }
 
   // ---------------------------------------------------------------- overview
@@ -265,6 +278,57 @@
       await loaders.model();
     } finally {
       $("reload-model").disabled = false;
+    }
+  };
+
+  // ---------------------------------------------------------------- insights (optional ml/insights.py)
+  function renderMarkdown(md) {
+    // small, safe subset: headings, bullet/numbered lists, bold, paragraphs
+    const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>");
+    const out = [];
+    let list = null;
+    const close = () => { if (list) { out.push(`</${list}>`); list = null; } };
+    for (const line of md.split("\n")) {
+      const h = line.match(/^(#{1,3})\s+(.*)/);
+      const ul = line.match(/^\s*[-*]\s+(.*)/);
+      const ol = line.match(/^\s*\d+[.)]\s+(.*)/);
+      if (h) { close(); out.push(`<h${h[1].length + 2}>${inline(h[2])}</h${h[1].length + 2}>`); }
+      else if (ul || ol) {
+        const kind = ul ? "ul" : "ol";
+        if (list !== kind) { close(); out.push(`<${kind}>`); list = kind; }
+        out.push(`<li>${inline((ul || ol)[1])}</li>`);
+      } else if (line.trim()) { close(); out.push(`<p>${inline(line)}</p>`); }
+      else close();
+    }
+    close();
+    return out.join("");
+  }
+
+  function renderInsights(r) {
+    const meta = r.generated_at
+      ? `Generated ${when(r.generated_at)} from ${r.n_suggestions} suggestions and ${r.n_queries} questions.` : "";
+    const body = {
+      not_generated: `<p class="empty">Press <b>Generate</b> to summarise what users are asking for.</p>`,
+      not_implemented: `<p class="empty">No insights module yet. This part is optional: implement
+        <code>generate_insights()</code> in <code>ml/insights.py</code> (an LLM may be used here, and only here),
+        then press <b>Generate</b> again.</p>`,
+      error: `<p class="empty">ml/insights.py raised an error:</p><pre class="detail-pre">${esc(r.error || "")}</pre>`,
+      ready: `<div class="insights-md">${renderMarkdown(r.markdown || "")}</div>`,
+    }[r.status];
+    $("insights-body").innerHTML = body + (meta ? `<p class="counter">${meta}</p>` : "");
+  }
+
+  loaders.insights = async () => renderInsights(await api("/api/admin/insights"));
+
+  $("generate-insights").onclick = async () => {
+    const b = $("generate-insights");
+    b.disabled = true;
+    b.textContent = "Generating…";
+    try {
+      renderInsights(await api("/api/admin/insights", { method: "POST" }));
+    } finally {
+      b.disabled = false;
+      b.textContent = "Generate";
     }
   };
 

@@ -19,7 +19,8 @@ CREATE TABLE IF NOT EXISTS feedback (
     created_at     TEXT NOT NULL,
     label          TEXT,               -- query | suggestion | bug | junk | NULL (pipeline unavailable)
     label_source   TEXT,               -- model | admin
-    confidence     REAL,
+    confidence     REAL,               -- probability of the chosen label (from predict_proba)
+    probabilities  TEXT,               -- JSON {label: probability} for every label (from predict_proba)
     match_kind     TEXT,               -- suggestion | issue
     match_id       TEXT,
     created_new    INTEGER NOT NULL DEFAULT 0,  -- 1 if this message created a new suggestion
@@ -67,6 +68,10 @@ def init_db(reset=False):
     if reset:
         db.executescript("DROP TABLE IF EXISTS feedback; DROP TABLE IF EXISTS suggestions; DROP TABLE IF EXISTS issues;")
     db.executescript(SCHEMA)
+    # databases created before a column existed get it added
+    columns = {r["name"] for r in db.execute("PRAGMA table_info(feedback)")}
+    if "probabilities" not in columns:
+        db.execute("ALTER TABLE feedback ADD COLUMN probabilities TEXT")
     data_dir = Path(current_app.config["DATA_DIR"])
     if db.execute("SELECT COUNT(*) FROM suggestions").fetchone()[0] == 0:
         for s in json.loads((data_dir / "suggestions.json").read_text(encoding="utf-8")):

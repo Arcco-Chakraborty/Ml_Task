@@ -1,4 +1,7 @@
 """The feedback flow: classify -> duplicate check -> update lists -> reply -> store."""
+import json
+import math
+
 from ml.pipeline import LABELS
 
 from . import db
@@ -6,20 +9,26 @@ from .pipeline_loader import get_handle
 from .replies import build_reply
 
 
-def _confidence(pipeline, text, label):
+def _probabilities(pipeline, text):
+    """{label: probability} from the optional predict_proba, or None if missing or unusable."""
     if not hasattr(pipeline, "predict_proba"):
         return None
     try:
-        return float(pipeline.predict_proba(text).get(label))
+        raw = pipeline.predict_proba(text)
+        probs = {label: float(raw.get(label, 0.0)) for label in LABELS}
     except Exception:
         return None
+    if not all(math.isfinite(p) and p >= 0 for p in probs.values()) or sum(probs.values()) <= 0:
+        return None
+    total = sum(probs.values())
+    return {label: p / total for label, p in probs.items()}
 
 
 def process_feedback(text):
     conn = db.get_db()
     handle = get_handle()
     pipeline = handle.pipeline
-    label = confidence = match_kind = match_id = error = None
+    label = probs = confidence = match_kind = match_id = error = None
     created_new = False
     suggestion = issue = None
     report_count = 0
@@ -30,7 +39,8 @@ def process_feedback(text):
         label = pipeline.classify(text)
         if label not in LABELS:
             raise ValueError(f"classify() returned {label!r}, expected one of {LABELS}")
-        confidence = _confidence(pipeline, text, label)
+        probs = _probabilities(pipeline, text)
+        confidence = probs[label] if probs else None
 
         if label == "suggestion":
             suggestions = db.list_suggestions()
@@ -71,11 +81,11 @@ def process_feedback(text):
     reply = build_reply(label, suggestion=suggestion, created_new=created_new,
                         issue=issue, report_count=report_count)
     cur = conn.execute(
-        """INSERT INTO feedback (text, created_at, label, label_source, confidence, match_kind,
-                                 match_id, created_new, reply, pipeline_error)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-        (text, db.now(), label, "model" if label else None, confidence, match_kind, match_id,
-         int(created_new), reply, error),
+        """INSERT INTO feedback (text, created_at, label, label_source, confidence, probabilities,
+                                 match_kind, match_id, created_new, reply, pipeline_error)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""",
+        (text, db.now(), label, "model" if label else None, confidence, json.dumps(probs) if probs else None,
+         match_kind, match_id, int(created_new), reply, error),
     )
     conn.commit()
     return {

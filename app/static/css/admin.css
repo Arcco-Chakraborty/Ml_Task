@@ -70,3 +70,17 @@ body.admin .topnav { margin-left: 16px; }
 @media (max-width: 760px) {
   .two-col, .metrics-grid { grid-template-columns: 1fr; }
 }
+
+/* confidence for every label, under the label dropdown */
+.probs { margin-top: 6px; min-width: 150px; }
+.probbar { display: flex; height: 6px; border-radius: 999px; overflow: hidden; background: var(--surface-2); }
+.probbar .seg.query { background: #0ea5e9; }
+.probbar .seg.suggestion { background: #8b5cf6; }
+.probbar .seg.bug { background: #ef4444; }
+.probbar .seg.junk { background: #94a3b8; }
+.problegend { font-size: .72rem; color: var(--muted); margin-top: 3px; white-space: nowrap; font-variant-numeric: tabular-nums; }
+.problegend .pick { color: var(--text); font-weight: 600; }
+
+.insights-md { line-height: 1.55; }
+.insights-md h3, .insights-md h4, .insights-md h5 { margin: 14px 0 6px; }
+.insights-md ul, .insights-md ol { padding-left: 20px; }

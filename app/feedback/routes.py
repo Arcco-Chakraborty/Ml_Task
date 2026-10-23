@@ -1,6 +1,9 @@
 import csv
+import importlib
 import io
 import json
+import traceback
+from datetime import datetime, timezone
 from functools import wraps
 from pathlib import Path
 
@@ -205,3 +208,34 @@ def model_status():
 def model_reload():
     handle = reload_pipeline()
     return jsonify(status=handle.status, detail=handle.detail)
+
+
+# ---------------------------------------------------------------- insights (optional, ml/insights.py)
+@bp.get("/api/admin/insights")
+@admin_required
+def insights():
+    return jsonify(current_app.extensions.get("insights") or {"status": "not_generated"})
+
+
+@bp.post("/api/admin/insights")
+@admin_required
+def generate_insights():
+    conn = db.get_db()
+    suggestions = [dict(r) for r in conn.execute(
+        "SELECT id, text, count, source FROM suggestions ORDER BY count DESC, id")]
+    queries = [r[0] for r in conn.execute(
+        "SELECT text FROM feedback WHERE label = 'query' ORDER BY id DESC LIMIT 200")]
+    result = {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+              "n_suggestions": len(suggestions), "n_queries": len(queries)}
+    try:
+        module = importlib.reload(importlib.import_module("ml.insights"))
+        text = module.generate_insights(suggestions, queries)
+        if not isinstance(text, str):
+            raise TypeError(f"generate_insights() returned {type(text).__name__}, expected str")
+        result.update(status="ready", markdown=text)
+    except NotImplementedError:
+        result.update(status="not_implemented")
+    except Exception:
+        result.update(status="error", error=traceback.format_exc(limit=3))
+    current_app.extensions["insights"] = result
+    return jsonify(result)

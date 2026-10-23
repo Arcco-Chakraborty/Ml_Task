@@ -95,7 +95,11 @@ class FeedbackPipeline:
     # optional: predict_proba(text) -> {label: prob}         # shown as confidence in the dashboard
 ```
 
-The docstrings in [`ml/pipeline.py`](ml/pipeline.py) have the details. The lists
+The docstrings in [`ml/pipeline.py`](ml/pipeline.py) have the details. With `predict_proba`, the dashboard's
+Inbox shows each message's confidence for every label as a bar.
+
+Optional: [`ml/insights.py`](ml/insights.py) feeds the dashboard's **Insights** tab with a summary of what users
+are asking for. It is the one place an LLM may be used. The lists
 are passed in on **every call** because they change at runtime: new
 suggestions get added, and issues get fixed. Match against what you're given.
 

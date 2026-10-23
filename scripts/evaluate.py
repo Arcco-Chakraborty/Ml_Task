@@ -20,7 +20,7 @@ from sklearn.model_selection import train_test_split
 
 from ml.data import load_issues, load_suggestions, load_train
 from ml.harness import format_report, score, simulate
-from ml.pipeline import FeedbackPipeline
+from ml.pipeline import LABELS, FeedbackPipeline
 
 ARTIFACTS = Path(__file__).resolve().parent.parent / "ml" / "artifacts"
 
@@ -33,6 +33,13 @@ def main():
     args = ap.parse_args()
 
     df = load_train()
+    unknown = sorted(set(df["label"]) - set(LABELS))
+    if unknown:
+        raise SystemExit(
+            f"data/train.csv has label spellings that aren't one of {LABELS}: {unknown[:8]}"
+            f"{' ...' if len(unknown) > 8 else ''}\n"
+            "The file is a raw export. Clean the labels where the data is loaded (ml/data.py load_train(), "
+            "which train.py and this script both use), then run this again.")
     train_df, eval_df = train_test_split(df, test_size=args.test_size, random_state=args.seed,
                                          stratify=df["label"])
     eval_df = eval_df.sort_values("id")

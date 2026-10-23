@@ -16,6 +16,7 @@
     <button data-tab="suggestions">Suggestions</button>
     <button data-tab="issues">Known issues</button>
     <button data-tab="model">Model</button>
+    <button data-tab="insights">Insights</button>
   </nav>
 
   <div id="pipeline-banner" class="banner" hidden></div>
@@ -82,6 +83,20 @@
   </section>
 
   <!-- ============================== model -->
+  <section data-panel="insights" hidden>
+    <div class="card">
+      <div class="model-head">
+        <div>
+          <h2>What users are asking for</h2>
+          <p class="counter">Optional: a summary of the suggestions board and recent questions, written by
+            <code>ml/insights.py</code>.</p>
+        </div>
+        <button class="icon-btn" id="generate-insights">Generate</button>
+      </div>
+      <div id="insights-body"></div>
+    </div>
+  </section>
+
   <section data-panel="model" hidden>
     <div class="card">
       <div class="model-head">

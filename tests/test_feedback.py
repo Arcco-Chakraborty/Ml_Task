@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from app.feedback import db
@@ -151,3 +153,61 @@ def test_pages_render(client, admin):
     assert client.get("/").status_code == 200
     assert client.get("/feedback").status_code == 200
     assert admin.get("/admin").status_code == 200
+
+
+# ---------------------------------------------------------------- predict_proba + insights
+def test_probabilities_for_every_label_are_stored(admin, fake_pipeline, monkeypatch):
+    monkeypatch.setattr(type(fake_pipeline), "predict_proba",
+                        lambda self, text: {"query": 0.1, "suggestion": 0.2, "bug": 0.6, "junk": 0.1}, raising=False)
+    fake_pipeline.answers["radar is grey"] = ("bug", "B04")
+    post(admin, "radar is grey")
+    row = admin.get("/api/admin/feedback").get_json()["items"][0]
+    assert row["confidence"] == pytest.approx(0.6)
+    assert json.loads(row["probabilities"]) == pytest.approx({"query": 0.1, "suggestion": 0.2, "bug": 0.6, "junk": 0.1})
+
+
+def test_broken_predict_proba_is_ignored(admin, fake_pipeline, monkeypatch):
+    monkeypatch.setattr(type(fake_pipeline), "predict_proba", lambda self, text: {"bug": float("nan")}, raising=False)
+    data = post(admin, "how do I add a city?").get_json()
+    assert data["label"] == "query"
+    row = admin.get("/api/admin/feedback").get_json()["items"][0]
+    assert row["probabilities"] is None and row["confidence"] is None
+
+
+def test_insights_not_implemented_then_ready(admin, monkeypatch):
+    assert admin.get("/api/admin/insights").get_json()["status"] == "not_generated"
+    assert admin.post("/api/admin/insights").get_json()["status"] == "not_implemented"
+
+    import ml.insights
+    seen = {}
+
+    def fake(suggestions, queries):
+        seen["n"] = len(suggestions)
+        return "## Top asks\n\n- **Dark mode** (41 votes)"
+    monkeypatch.setattr("importlib.reload", lambda m: m)
+    monkeypatch.setattr(ml.insights, "generate_insights", fake)
+    r = admin.post("/api/admin/insights").get_json()
+    assert r["status"] == "ready" and "Dark mode" in r["markdown"] and seen["n"] == 32
+    assert admin.get("/api/admin/insights").get_json()["status"] == "ready"
+
+
+def test_insights_error_is_reported(admin, monkeypatch):
+    import ml.insights
+    monkeypatch.setattr("importlib.reload", lambda m: m)
+    monkeypatch.setattr(ml.insights, "generate_insights", lambda s, q: 1 / 0)
+    r = admin.post("/api/admin/insights").get_json()
+    assert r["status"] == "error" and "ZeroDivisionError" in r["error"]
+
+
+def test_old_database_gets_probabilities_column(tmp_path, fake_pipeline):
+    import sqlite3
+    from app import create_app
+    path = tmp_path / "old.db"
+    con = sqlite3.connect(path)
+    con.execute("CREATE TABLE feedback (id INTEGER PRIMARY KEY AUTOINCREMENT, text TEXT NOT NULL, created_at TEXT NOT NULL,"
+                " label TEXT, label_source TEXT, confidence REAL, match_kind TEXT, match_id TEXT,"
+                " created_new INTEGER NOT NULL DEFAULT 0, reply TEXT NOT NULL, pipeline_error TEXT)")
+    con.commit(); con.close()
+    create_app({"TESTING": True, "DATABASE": str(path), "ML_ARTIFACTS": str(tmp_path / "a"), "PIPELINE": fake_pipeline})
+    cols = {r[1] for r in sqlite3.connect(path).execute("PRAGMA table_info(feedback)")}
+    assert "probabilities" in cols
