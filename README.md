@@ -129,22 +129,16 @@ ml/
   train.py            trains on all of train.csv, saves to ml/artifacts/
   harness.py          stateful simulation + scoring used by scripts/evaluate.py
   data.py             dataset loaders
+  insights.py         optional: summary for the dashboard's Insights tab
   artifacts/          your saved model (+ metrics.json from evaluate)
 scripts/evaluate.py   held-out evaluation, confusion matrix, error list
 data/                 dataset + labelling guide
-tests/                app tests + your pipeline's contract tests
+tests/                contract tests for your pipeline
 ```
 
 Useful extras:
 - `flask --app run reset-db` wipes all feedback and re-seeds the suggestions and issues lists.
 - The dashboard's **Inbox** lets you correct labels, and **Export CSV** downloads them, in case you want to collect more training data.
-- `pytest` runs everything. The app tests use recorded API responses, so they work offline.
-
-## Round 2 (coming later)
-
-In round 2 you'll extend this into an agent that takes the bug reports your pipeline
-collects and tries to **fix them in this codebase** and open pull requests. Keep that in
-mind: a pipeline that groups bug reports reliably makes round 2 much easier.
 
 ---
 
